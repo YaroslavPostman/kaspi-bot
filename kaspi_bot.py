@@ -16,7 +16,6 @@ def get_orders():
     
     response = requests.get(url, headers=headers)
 
-    # 🔴 Сырой ответ от Kaspi
     print("🔴 Raw response from Kaspi API:")
     print(response.text)
 
@@ -31,7 +30,6 @@ def get_orders():
     try:
         raw_orders = data[0].get("orders", [])
 
-        # 🟡 До обработки
         print("🟡 Orders from JSON:")
         print(raw_orders)
 
@@ -50,12 +48,16 @@ def get_orders():
                     if c in name:
                         color = c
                 for s in ["s", "m", "l", "xl", "xxl"]:
-                    if f" {s} " in name or name.endswith(f" {s}"):
+                    if (
+                        f" {s}" in name
+                        or f",{s}" in name
+                        or name.endswith(f" {s}")
+                        or name.endswith(f",{s}")
+                    ):
                         size = s.upper()
 
                 orders.append({"color": color, "size": size, "qty": qty})
 
-        # 🟢 После обработки
         print("🟢 Orders ready to send:")
         print(orders)
 
