@@ -19,7 +19,7 @@ def get_orders():
 
     data = response.json()
     orders = []
-    for order in data.get("orders", []):
+    for order in data:
         for product in order.get("positions", []):
             name = product.get("name", "").lower()
             qty = product.get("quantity", 1)
