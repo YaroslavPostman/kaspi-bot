@@ -13,58 +13,48 @@ def get_orders():
         "Content-Type": "application/json"
     }
     url = "https://mc.shop.kaspi.kz/mc/api/orderTabs/active?count=100&selectedTabs=KASPI_DELIVERY_ASSEMBLY&startIndex=0&loadPoints=true&_m=30067732"
-    
+
     response = requests.get(url, headers=headers)
     print("🔴 Raw response from Kaspi API:")
     print(response.text)
 
-    try:
-        data = response.json()
-    except Exception as e:
-        print("❌ Ошибка разбора JSON:", str(e))
-        return []
+    data = response.json()
+    raw_orders = data[0].get("orders", [])
+    print("🟡 Orders from JSON:", raw_orders)
 
     orders = []
 
-    try:
-        raw_orders = data[0].get("orders", [])
-        print("🟡 Orders from JSON:")
-        print(raw_orders)
+    for order in raw_orders:
+        print("🧾 Обрабатываем заказ:", order.get("id"))
+        positions = order.get("positions", [])
+        print(f"📦 Позиции в заказе {order.get('id')}: {positions}")
 
-        for order in raw_orders:
-            print("🧾 Обрабатываем заказ:", order.get("id"))
-            positions = order.get("positions", [])
-            print(f"📦 Позиции в заказе {order.get('id')}: {positions}")
+        for product in positions:
+            print("📦 Найден товар:", product)
+            name = product.get("name", "").lower()
+            qty = product.get("quantity", 1)
 
-            for product in positions:
-                print("📦 Найден товар:", product)
-                name = product.get("name", "").lower()
-                qty = product.get("quantity", 1)
+            color = "неизвестно"
+            size = "неизвестно"
 
-                color = "неизвестно"
-                size = "неизвестно"
+            for c in ["черный", "белый", "синий", "красный", "бежевый"]:
+                if c in name:
+                    color = c
+            for s in ["s", "m", "l", "xl", "xxl"]:
+                if (
+                    f" {s}" in name
+                    or f",{s}" in name
+                    or name.endswith(f" {s}")
+                    or name.endswith(f",{s}")
+                ):
+                    size = s.upper()
 
-                for c in ["черный", "белый", "синий", "красный", "бежевый"]:
-                    if c in name:
-                        color = c
-                for s in ["s", "m", "l", "xl", "xxl"]:
-                    if (
-                        f" {s}" in name
-                        or f",{s}" in name
-                        or name.endswith(f" {s}")
-                        or name.endswith(f",{s}")
-                    ):
-                        size = s.upper()
-
-                orders.append({"color": color, "size": size, "qty": qty})
-
-    except Exception as e:
-        print("❌ Ошибка при обработке заказов:", str(e))
+            orders.append({"color": color, "size": size, "qty": qty})
 
     print("🟢 Orders ready to send:")
     print(orders)
 
-    return orders  # 👈 ВОТ ГЛАВНОЕ!
+    return orders  # 🟢 Всегда вернётся, даже если пусто
 
 def format_orders(orders):
     grouped = defaultdict(lambda: defaultdict(int))
@@ -82,10 +72,9 @@ def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": text  # ❗ без <b> и без HTML
+        "text": text
     }
-    print("📤 Отправка в Telegram:")
-    print(payload)
+    print("📤 Отправка в Telegram:", payload)
     response = requests.post(url, data=payload)
     print("📬 Ответ Telegram:", response.status_code, response.text)
     return response.ok
