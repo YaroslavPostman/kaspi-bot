@@ -13,28 +13,37 @@ def get_orders():
     }
     url = "https://mc.shop.kaspi.kz/mc/api/orderTabs/active?count=100&selectedTabs=KASPI_DELIVERY_CARGO_ASSEMBLY&startIndex=0&loadPoints=true&_m=30067732"
     response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        print("Ошибка:", response.text)
+    print("Ответ от Kaspi API:")
+    print(response.text)
+
+    try:
+        data = response.json()
+    except Exception as e:
+        print("Ошибка разбора JSON:", str(e))
         return []
 
-    data = response.json()
     orders = []
-    for order in data[0].get("orders", []):
-        for product in order.get("positions", []):
-            name = product.get("name", "").lower()
-            qty = product.get("quantity", 1)
 
-            color = "неизвестно"
-            size = "неизвестно"
+    try:
+        for order in data[0].get("orders", []):
+            for product in order.get("positions", []):
+                name = product.get("name", "").lower()
+                qty = product.get("quantity", 1)
 
-            for c in ["черный", "белый", "синий", "красный", "бежевый"]:
-                if c in name:
-                    color = c
-            for s in ["s", "m", "l", "xl", "xxl"]:
-                if f" {s} " in name or name.endswith(f" {s}"):
-                    size = s.upper()
+                color = "неизвестно"
+                size = "неизвестно"
 
-            orders.append({"color": color, "size": size, "qty": qty})
+                for c in ["черный", "белый", "синий", "красный", "бежевый"]:
+                    if c in name:
+                        color = c
+                for s in ["s", "m", "l", "xl", "xxl"]:
+                    if f" {s} " in name or name.endswith(f" {s}"):
+                        size = s.upper()
+
+                orders.append({"color": color, "size": size, "qty": qty})
+    except Exception as e:
+        print("Ошибка при обработке заказов:", str(e))
+
     return orders
 
 def format_orders(orders):
@@ -52,12 +61,19 @@ def format_orders(orders):
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
-    requests.post(url, data=payload)
+    print("Отправка в Telegram:")
+    print(payload)
+    response = requests.post(url, data=payload)
+    print("Ответ Telegram:", response.status_code, response.text)
+    return response.ok
 
 if __name__ == "__main__":
     orders = get_orders()
     if orders:
         message = format_orders(orders)
-        send_to_telegram(message)
     else:
-        send_to_telegram("Нет заказов на сборку.")
+        message = "Нет заказов на сборку."
+
+    print("Сообщение:")
+    print(message)
+    send_to_telegram(message)
