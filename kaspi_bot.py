@@ -24,7 +24,6 @@ def get_orders():
         print("❌ Ошибка при разборе JSON:", str(e))
         return []
 
-    # ✅ Защита от пустого списка
     if not data or not isinstance(data, list):
         print("⚠️ Пустой или некорректный ответ от Kaspi API.")
         return []
@@ -90,6 +89,10 @@ def send_to_telegram(text):
 
 if __name__ == "__main__":
     orders = get_orders()
+
+    # 🔍 Отладка: проверим, что пришло в main
+    print("✅ MAIN: Получены заказы:", orders)
+    print("✅ MAIN: Длина списка заказов:", len(orders))
 
     if orders:
         message = format_orders(orders)
