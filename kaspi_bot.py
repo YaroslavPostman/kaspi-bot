@@ -1,112 +1,63 @@
 import requests
-import os
 import datetime
-from collections import defaultdict
+import pytz
+import json
+import os
 
-print("🧠 KASPI BOT VERSION: v3.5-debug-tagged")
+# ⚙️ Конфигурация
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+KASPI_API_URL = os.getenv("KASPI_API_URL")
 
-KASPI_API_TOKEN = os.getenv("KASPI_API_TOKEN")
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+# 🕐 Текущая дата в KZT
+tz = pytz.timezone("Asia/Almaty")
+current_time = datetime.datetime.now(tz)
+formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
 
+# 🔄 Получение заказов
 def get_orders():
-    headers = {
-        "X-Auth-Token": KASPI_API_TOKEN,
-        "Content-Type": "application/json"
-    }
-    url = "https://mc.shop.kaspi.kz/mc/api/orderTabs/active?count=100&selectedTabs=KASPI_DELIVERY_ASSEMBLY&startIndex=0&loadPoints=true&_m=30067732"
-
-    response = requests.get(url, headers=headers)
-    print("🔴 Raw response from Kaspi API:")
-    print(response.text)
-
     try:
-        data = response.json()
+        response = requests.get(KASPI_API_URL)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"Status code: {response.status_code}"}
     except Exception as e:
-        print("❌ Ошибка при разборе JSON:", str(e))
-        return []
+        return {"error": str(e)}
 
-    if not data or not isinstance(data, list):
-        print("⚠️ Пустой или некорректный ответ от Kaspi API.")
-        return []
+# 📤 Отправка сообщения в Telegram
+def send_telegram_message(text):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
+    requests.post(url, data=payload)
 
-    raw_orders = data[0].get("orders", [])
-    print("🟡 Orders from JSON:", raw_orders)
+# 🧠 Основная логика
+def main():
+    orders_data = get_orders()
 
-    orders = []
+    # Проверка ошибок
+    if "error" in orders_data:
+        send_telegram_message(f"❌ Ошибка при получении заказов: {orders_data['error']}")
+        return
 
-    for order in raw_orders:
-        print("🧾 Обрабатываем заказ:", order.get("id"))
-        positions = order.get("positions", [])
-        print(f"📦 Позиции в заказе {order.get('id')}: {positions}")
+    orders = orders_data.get("orders", [])
+    total = len(orders)
 
-        for product in positions:
-            print("📦 Найден товар:", product)
-            name = product.get("name", "").lower()
-            qty = product.get("quantity", 1)
+    # ⚠️ Отладка: сколько заказов
+    debug_text = f"🛒 [v3.6-debug] Получено заказов: {total}\nВремя: {formatted_time} (KZT)"
+    send_telegram_message(debug_text)
 
-            color = "неизвестно"
-            size = "неизвестно"
+    # ⚠️ Если заказов нет — отправим как и раньше
+    if total == 0:
+        send_telegram_message(f"❌ [v3.6] Нет заказов на сборку. Время: {formatted_time} (KZT)")
+        return
 
-            for c in ["черный", "белый", "синий", "красный", "бежевый"]:
-                if c in name:
-                    color = c
+    # 🧾 Отправим первые 3 заказа как json (сокращённо)
+    preview = json.dumps(orders[:3], indent=2, ensure_ascii=False)
+    send_telegram_message(f"<pre>{preview}</pre>")
 
-            for s in ["xxl", "xl", "l", "m", "s"]:
-                if (
-                    f" {s} " in f" {name} "
-                    or f",{s}" in name
-                    or name.endswith(f" {s}")
-                    or name.endswith(f",{s}")
-                ):
-                    size = s.upper()
-                    break
-
-            orders.append({"color": color, "size": size, "qty": qty})
-
-    print("🟢 Orders ready to send:")
-    print(orders)
-    return orders
-
-def format_orders(orders):
-    grouped = defaultdict(lambda: defaultdict(int))
-    for order in orders:
-        grouped[order["color"]][order["size"]] += order["qty"]
-
-    message = ""
-    for color, sizes in grouped.items():
-        message += f"Цвет {color}:\n"
-        for size, qty in sizes.items():
-            message += f"  {size} - {qty}\n"
-    return message.strip()
-
-def send_to_telegram(text):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text
-    }
-    print("📤 Отправка в Telegram:", payload)
-    response = requests.post(url, data=payload)
-    print("📬 Ответ Telegram:", response.status_code, response.text)
-    return response.ok
+    # ⛏️ Тут можно добавить группировку по цвету/размеру, как в старой версии
+    # Например: group_and_send(orders)
 
 if __name__ == "__main__":
-    orders = get_orders()
-
-    print("✅ MAIN: Получены заказы:", orders)
-    print("✅ MAIN: Длина списка заказов:", len(orders))
-
-    if isinstance(orders, list) and any(orders):
-        message = format_orders(orders)
-        print("📦 Отправляем список заказов в Telegram")
-    else:
-        print("❌ Список заказов пустой или некорректный")
-        kz_time = datetime.datetime.utcnow() + datetime.timedelta(hours=5)
-        now = kz_time.strftime("%Y-%m-%d %H:%M:%S") + " (KZT)"
-        message = f"❌ [v3.5-debug-tagged] Нет заказов на сборку. Время: {now}"
-
-    print("📨 Финальное сообщение:")
-    print(message)
-
-    send_to_telegram(message)
+    main()
