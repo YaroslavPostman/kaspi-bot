@@ -18,7 +18,17 @@ def get_orders():
     print("🔴 Raw response from Kaspi API:")
     print(response.text)
 
-    data = response.json()
+    try:
+        data = response.json()
+    except Exception as e:
+        print("❌ Ошибка при разборе JSON:", str(e))
+        return []
+
+    # ✅ Защита от пустого списка
+    if not data or not isinstance(data, list):
+        print("⚠️ Пустой или некорректный ответ от Kaspi API.")
+        return []
+
     raw_orders = data[0].get("orders", [])
     print("🟡 Orders from JSON:", raw_orders)
 
@@ -53,8 +63,7 @@ def get_orders():
 
     print("🟢 Orders ready to send:")
     print(orders)
-
-    return orders  # 🟢 Всегда вернётся, даже если пусто
+    return orders
 
 def format_orders(orders):
     grouped = defaultdict(lambda: defaultdict(int))
