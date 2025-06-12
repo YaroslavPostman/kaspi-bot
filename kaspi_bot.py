@@ -3,6 +3,8 @@ import os
 import datetime
 from collections import defaultdict
 
+print("🧠 KASPI BOT VERSION: v3.3-final-check")
+
 KASPI_API_TOKEN = os.getenv("KASPI_API_TOKEN")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -50,7 +52,6 @@ def get_orders():
                 if c in name:
                     color = c
 
-            # 💡 Улучшенный парсинг размеров
             for s in ["xxl", "xl", "l", "m", "s"]:
                 if (
                     f" {s} " in f" {name} "
@@ -92,7 +93,6 @@ def send_to_telegram(text):
 
 if __name__ == "__main__":
     orders = get_orders()
-
     print("✅ MAIN: Получены заказы:", orders)
     print("✅ MAIN: Длина списка заказов:", len(orders))
 
