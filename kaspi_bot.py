@@ -3,7 +3,7 @@ import os
 import datetime
 from collections import defaultdict
 
-print("🧠 KASPI BOT VERSION: v3.3-final-check")
+print("🧠 KASPI BOT VERSION: v3.4-debug-true-orders")
 
 KASPI_API_TOKEN = os.getenv("KASPI_API_TOKEN")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -93,16 +93,20 @@ def send_to_telegram(text):
 
 if __name__ == "__main__":
     orders = get_orders()
+
     print("✅ MAIN: Получены заказы:", orders)
     print("✅ MAIN: Длина списка заказов:", len(orders))
 
-    if orders:
+    if isinstance(orders, list) and any(orders):
         message = format_orders(orders)
+        print("📦 Отправляем список заказов в Telegram")
     else:
+        print("❌ Список заказов пустой или некорректный")
         kz_time = datetime.datetime.utcnow() + datetime.timedelta(hours=5)
         now = kz_time.strftime("%Y-%m-%d %H:%M:%S") + " (KZT)"
         message = f"Нет заказов на сборку. Время: {now}"
 
     print("📨 Финальное сообщение:")
     print(message)
+
     send_to_telegram(message)
