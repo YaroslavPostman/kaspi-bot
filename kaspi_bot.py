@@ -3,7 +3,6 @@ import os
 import datetime
 from collections import defaultdict
 
-# Получаем переменные из GitHub Secrets
 KASPI_API_TOKEN = os.getenv("KASPI_API_TOKEN")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -16,7 +15,9 @@ def get_orders():
     url = "https://mc.shop.kaspi.kz/mc/api/orderTabs/active?count=100&selectedTabs=KASPI_DELIVERY_CARGO_ASSEMBLY&startIndex=0&loadPoints=true&_m=30067732"
     
     response = requests.get(url, headers=headers)
-    print("Ответ от Kaspi API:")
+
+    # 🔍 Блок 1: сырой ответ от Kaspi
+    print("🔴 Raw response from Kaspi API:")
     print(response.text)
 
     try:
@@ -28,7 +29,13 @@ def get_orders():
     orders = []
 
     try:
-        for order in data[0].get("orders", []):
+        raw_orders = data[0].get("orders", [])
+
+        # 🔍 Блок 2: список заказов до обработки
+        print("🟡 Orders from JSON:")
+        print(raw_orders)
+
+        for order in raw_orders:
             for product in order.get("positions", []):
                 name = product.get("name", "").lower()
                 qty = product.get("quantity", 1)
@@ -44,6 +51,11 @@ def get_orders():
                         size = s.upper()
 
                 orders.append({"color": color, "size": size, "qty": qty})
+
+        # 🔍 Блок 3: после обработки
+        print("🟢 Orders ready to send:")
+        print(orders)
+
     except Exception as e:
         print("Ошибка при обработке заказов:", str(e))
 
@@ -63,7 +75,11 @@ def format_orders(orders):
 
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": f"<b>{text}</b>",
+        "parse_mode": "HTML"
+    }
     print("Отправка в Telegram:")
     print(payload)
     response = requests.post(url, data=payload)
@@ -77,8 +93,8 @@ if __name__ == "__main__":
         message = format_orders(orders)
     else:
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        message = f"Нет заказов на сборку. Время: {now}"  # Уникальное сообщение
+        message = f"Нет заказов на сборку. Время: {now}"
 
-    print("Сообщение:")
+    print("📨 Финальное сообщение:")
     print(message)
     send_to_telegram(message)
