@@ -12,7 +12,7 @@ def get_orders():
         "X-Auth-Token": KASPI_API_TOKEN,
         "Content-Type": "application/json"
     }
-    url = "https://mc.shop.kaspi.kz/mc/api/orderTabs/active?count=100&selectedTabs=KASPI_DELIVERY_CARGO_ASSEMBLY&startIndex=0&loadPoints=true&_m=30067732"
+    url = "https://mc.shop.kaspi.kz/mc/api/orderTabs/active?count=100&selectedTabs=KASPI_DELIVERY_ASSEMBLY&startIndex=0&loadPoints=true&_m=30067732"
     
     response = requests.get(url, headers=headers)
 
