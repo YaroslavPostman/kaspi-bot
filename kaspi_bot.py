@@ -97,7 +97,9 @@ if __name__ == "__main__":
     if orders:
         message = format_orders(orders)
     else:
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # корректное время для Казахстана (UTC+5)
+        kz_time = datetime.datetime.utcnow() + datetime.timedelta(hours=5)
+        now = kz_time.strftime("%Y-%m-%d %H:%M:%S") + " (KZT)"
         message = f"Нет заказов на сборку. Время: {now}"
 
     print("📨 Финальное сообщение:")
