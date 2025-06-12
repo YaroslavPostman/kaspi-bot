@@ -15,7 +15,6 @@ def get_orders():
     url = "https://mc.shop.kaspi.kz/mc/api/orderTabs/active?count=100&selectedTabs=KASPI_DELIVERY_ASSEMBLY&startIndex=0&loadPoints=true&_m=30067732"
     
     response = requests.get(url, headers=headers)
-
     print("🔴 Raw response from Kaspi API:")
     print(response.text)
 
@@ -29,7 +28,6 @@ def get_orders():
 
     try:
         raw_orders = data[0].get("orders", [])
-
         print("🟡 Orders from JSON:")
         print(raw_orders)
 
@@ -40,7 +38,6 @@ def get_orders():
 
             for product in positions:
                 print("📦 Найден товар:", product)
-
                 name = product.get("name", "").lower()
                 qty = product.get("quantity", 1)
 
@@ -61,13 +58,13 @@ def get_orders():
 
                 orders.append({"color": color, "size": size, "qty": qty})
 
-        print("🟢 Orders ready to send:")
-        print(orders)
-
     except Exception as e:
         print("❌ Ошибка при обработке заказов:", str(e))
 
-    return orders
+    print("🟢 Orders ready to send:")
+    print(orders)
+
+    return orders  # 👈 ВОТ ГЛАВНОЕ!
 
 def format_orders(orders):
     grouped = defaultdict(lambda: defaultdict(int))
@@ -85,8 +82,7 @@ def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": f"<b>{text}</b>",
-        "parse_mode": "HTML"
+        "text": text  # ❗ без <b> и без HTML
     }
     print("📤 Отправка в Telegram:")
     print(payload)
@@ -96,7 +92,7 @@ def send_to_telegram(text):
 
 if __name__ == "__main__":
     orders = get_orders()
-    
+
     if orders:
         message = format_orders(orders)
     else:
