@@ -1,7 +1,9 @@
 import requests
 import os
+import datetime
 from collections import defaultdict
 
+# Получаем переменные из GitHub Secrets
 KASPI_API_TOKEN = os.getenv("KASPI_API_TOKEN")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -12,6 +14,7 @@ def get_orders():
         "Content-Type": "application/json"
     }
     url = "https://mc.shop.kaspi.kz/mc/api/orderTabs/active?count=100&selectedTabs=KASPI_DELIVERY_CARGO_ASSEMBLY&startIndex=0&loadPoints=true&_m=30067732"
+    
     response = requests.get(url, headers=headers)
     print("Ответ от Kaspi API:")
     print(response.text)
@@ -69,10 +72,12 @@ def send_to_telegram(text):
 
 if __name__ == "__main__":
     orders = get_orders()
+    
     if orders:
         message = format_orders(orders)
     else:
-        message = "Нет заказов на сборку."
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message = f"Нет заказов на сборку. Время: {now}"  # Уникальное сообщение
 
     print("Сообщение:")
     print(message)
