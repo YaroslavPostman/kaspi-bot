@@ -49,14 +49,17 @@ def get_orders():
             for c in ["черный", "белый", "синий", "красный", "бежевый"]:
                 if c in name:
                     color = c
-            for s in ["s", "m", "l", "xl", "xxl"]:
+
+            # 💡 Улучшенный парсинг размеров
+            for s in ["xxl", "xl", "l", "m", "s"]:
                 if (
-                    f" {s}" in name
+                    f" {s} " in f" {name} "
                     or f",{s}" in name
                     or name.endswith(f" {s}")
                     or name.endswith(f",{s}")
                 ):
                     size = s.upper()
+                    break
 
             orders.append({"color": color, "size": size, "qty": qty})
 
@@ -90,7 +93,6 @@ def send_to_telegram(text):
 if __name__ == "__main__":
     orders = get_orders()
 
-    # 🔍 Отладка: проверим, что пришло в main
     print("✅ MAIN: Получены заказы:", orders)
     print("✅ MAIN: Длина списка заказов:", len(orders))
 
