@@ -16,14 +16,14 @@ def get_orders():
     
     response = requests.get(url, headers=headers)
 
-    # 🔍 Блок 1: сырой ответ от Kaspi
+    # 🔴 Сырой ответ от Kaspi
     print("🔴 Raw response from Kaspi API:")
     print(response.text)
 
     try:
         data = response.json()
     except Exception as e:
-        print("Ошибка разбора JSON:", str(e))
+        print("❌ Ошибка разбора JSON:", str(e))
         return []
 
     orders = []
@@ -31,12 +31,15 @@ def get_orders():
     try:
         raw_orders = data[0].get("orders", [])
 
-        # 🔍 Блок 2: список заказов до обработки
+        # 🟡 До обработки
         print("🟡 Orders from JSON:")
         print(raw_orders)
 
         for order in raw_orders:
+            print("🧾 Обрабатываем заказ:", order.get("id"))
             for product in order.get("positions", []):
+                print("📦 Найден товар:", product)
+
                 name = product.get("name", "").lower()
                 qty = product.get("quantity", 1)
 
@@ -52,12 +55,12 @@ def get_orders():
 
                 orders.append({"color": color, "size": size, "qty": qty})
 
-        # 🔍 Блок 3: после обработки
+        # 🟢 После обработки
         print("🟢 Orders ready to send:")
         print(orders)
 
     except Exception as e:
-        print("Ошибка при обработке заказов:", str(e))
+        print("❌ Ошибка при обработке заказов:", str(e))
 
     return orders
 
@@ -80,10 +83,10 @@ def send_to_telegram(text):
         "text": f"<b>{text}</b>",
         "parse_mode": "HTML"
     }
-    print("Отправка в Telegram:")
+    print("📤 Отправка в Telegram:")
     print(payload)
     response = requests.post(url, data=payload)
-    print("Ответ Telegram:", response.status_code, response.text)
+    print("📬 Ответ Telegram:", response.status_code, response.text)
     return response.ok
 
 if __name__ == "__main__":
