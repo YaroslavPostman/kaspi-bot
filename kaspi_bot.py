@@ -35,7 +35,10 @@ def get_orders():
 
         for order in raw_orders:
             print("🧾 Обрабатываем заказ:", order.get("id"))
-            for product in order.get("positions", []):
+            positions = order.get("positions", [])
+            print(f"📦 Позиции в заказе {order.get('id')}: {positions}")
+
+            for product in positions:
                 print("📦 Найден товар:", product)
 
                 name = product.get("name", "").lower()
@@ -97,7 +100,6 @@ if __name__ == "__main__":
     if orders:
         message = format_orders(orders)
     else:
-        # корректное время для Казахстана (UTC+5)
         kz_time = datetime.datetime.utcnow() + datetime.timedelta(hours=5)
         now = kz_time.strftime("%Y-%m-%d %H:%M:%S") + " (KZT)"
         message = f"Нет заказов на сборку. Время: {now}"
