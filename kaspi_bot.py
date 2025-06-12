@@ -3,7 +3,7 @@ import os
 import datetime
 from collections import defaultdict
 
-print("🧠 KASPI BOT VERSION: v3.4-debug-true-orders")
+print("🧠 KASPI BOT VERSION: v3.5-debug-tagged")
 
 KASPI_API_TOKEN = os.getenv("KASPI_API_TOKEN")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         print("❌ Список заказов пустой или некорректный")
         kz_time = datetime.datetime.utcnow() + datetime.timedelta(hours=5)
         now = kz_time.strftime("%Y-%m-%d %H:%M:%S") + " (KZT)"
-        message = f"Нет заказов на сборку. Время: {now}"
+        message = f"❌ [v3.5-debug-tagged] Нет заказов на сборку. Время: {now}"
 
     print("📨 Финальное сообщение:")
     print(message)
