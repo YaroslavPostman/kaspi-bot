@@ -1,63 +1,55 @@
 import requests
-import datetime
-import pytz
-import json
 import os
+import datetime
+import json
 
-# ⚙️ Конфигурация
-TOKEN = os.getenv("TELEGRAM_TOKEN")
+print("🚀 KASPI BOT v3.7-safe-echo запущен")
+
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 KASPI_API_URL = os.getenv("KASPI_API_URL")
 
-# 🕐 Текущая дата в KZT
-tz = pytz.timezone("Asia/Almaty")
-current_time = datetime.datetime.now(tz)
-formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+def send_telegram(text):
+    try:
+        response = requests.post(
+            f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+            data={"chat_id": CHAT_ID, "text": text}
+        )
+        print("📬 Telegram response:", response.status_code, response.text)
+    except Exception as e:
+        print("❌ Ошибка отправки в Telegram:", str(e))
 
-# 🔄 Получение заказов
 def get_orders():
     try:
+        print("🔄 Получаем данные от Kaspi...")
         response = requests.get(KASPI_API_URL)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return {"error": f"Status code: {response.status_code}"}
+        print("🧾 Ответ от Kaspi:", response.status_code)
+        return response.json()
     except Exception as e:
-        return {"error": str(e)}
+        print("❌ Ошибка при получении заказов:", str(e))
+        send_telegram(f"❌ Ошибка Kaspi API: {e}")
+        return {}
 
-# 📤 Отправка сообщения в Telegram
-def send_telegram_message(text):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
-    requests.post(url, data=payload)
-
-# 🧠 Основная логика
 def main():
-    orders_data = get_orders()
+    try:
+        orders_data = get_orders()
+        orders = orders_data.get("orders", [])
 
-    # Проверка ошибок
-    if "error" in orders_data:
-        send_telegram_message(f"❌ Ошибка при получении заказов: {orders_data['error']}")
-        return
+        now = datetime.datetime.utcnow() + datetime.timedelta(hours=5)
+        time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    orders = orders_data.get("orders", [])
-    total = len(orders)
+        if not orders:
+            msg = f"❌ [v3.7] Нет заказов. Время: {time_str}"
+            print(msg)
+            send_telegram(msg)
+        else:
+            preview = json.dumps(orders[:2], indent=2, ensure_ascii=False)
+            print("📦 Есть заказы:", preview)
+            send_telegram(f"✅ Заказы: {len(orders)}\n<pre>{preview}</pre>")
 
-    # ⚠️ Отладка: сколько заказов
-    debug_text = f"🛒 [v3.6-debug] Получено заказов: {total}\nВремя: {formatted_time} (KZT)"
-    send_telegram_message(debug_text)
-
-    # ⚠️ Если заказов нет — отправим как и раньше
-    if total == 0:
-        send_telegram_message(f"❌ [v3.6] Нет заказов на сборку. Время: {formatted_time} (KZT)")
-        return
-
-    # 🧾 Отправим первые 3 заказа как json (сокращённо)
-    preview = json.dumps(orders[:3], indent=2, ensure_ascii=False)
-    send_telegram_message(f"<pre>{preview}</pre>")
-
-    # ⛏️ Тут можно добавить группировку по цвету/размеру, как в старой версии
-    # Например: group_and_send(orders)
+    except Exception as e:
+        print("❌ Общая ошибка:", str(e))
+        send_telegram(f"❌ Ошибка в main(): {e}")
 
 if __name__ == "__main__":
     main()
