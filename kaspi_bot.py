@@ -1,55 +1,69 @@
-import requests
+
 import os
-import datetime
-import json
+import requests
+import pytz
+from datetime import datetime
 
-print("🚀 KASPI BOT v3.7-safe-echo запущен")
+# Настройки
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-KASPI_API_URL = os.getenv("KASPI_API_URL")
+# Версия бота
+BOT_VERSION = "v4.0"
 
-def send_telegram(text):
-    try:
-        response = requests.post(
-            f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-            data={"chat_id": CHAT_ID, "text": text}
-        )
-        print("📬 Telegram response:", response.status_code, response.text)
-    except Exception as e:
-        print("❌ Ошибка отправки в Telegram:", str(e))
+# Kaspi API URL
+KASPI_API_URL = "https://kaspi.kz/shop/api/orders"
 
+# Заголовки с куками
+headers = {
+    "X-Mc-Api-Session-Id": "Y4-1c639cc5-583e-47f7-98ac-e6f5e0f80aac",
+    "Cookie": (
+        "kaspi.storefront.cookie.city=750000000; "
+        "mc-sid=1d86f21b-fa72-4f74-bf9f-67847b5eccdd; "
+        "ssaid=79a7e9b0-998d-11ee-9a95-77ef56f38499; "
+        "ks.tg=15"
+    )
+}
+
+# Получение заказов
 def get_orders():
     try:
-        print("🔄 Получаем данные от Kaspi...")
-        response = requests.get(KASPI_API_URL)
-        print("🧾 Ответ от Kaspi:", response.status_code)
+        response = requests.get(KASPI_API_URL, headers=headers)
+        response.raise_for_status()
         return response.json()
     except Exception as e:
-        print("❌ Ошибка при получении заказов:", str(e))
-        send_telegram(f"❌ Ошибка Kaspi API: {e}")
-        return {}
+        return f"❌ Ошибка Kaspi API: {e}"
+
+# Отправка сообщения в Telegram
+def send_telegram_message(text):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text
+    }
+    try:
+        requests.post(url, data=payload)
+    except Exception as e:
+        print(f"Ошибка Telegram: {e}")
 
 def main():
-    try:
-        orders_data = get_orders()
-        orders = orders_data.get("orders", [])
+    print(f"🚀 KASPI BOT {BOT_VERSION} запущен")
+    print("🔄 Получаем данные от Kaspi...")
 
-        now = datetime.datetime.utcnow() + datetime.timedelta(hours=5)
-        time_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    result = get_orders()
 
-        if not orders:
-            msg = f"❌ [v3.7] Нет заказов. Время: {time_str}"
-            print(msg)
-            send_telegram(msg)
-        else:
-            preview = json.dumps(orders[:2], indent=2, ensure_ascii=False)
-            print("📦 Есть заказы:", preview)
-            send_telegram(f"✅ Заказы: {len(orders)}\n<pre>{preview}</pre>")
+    # Время в часовом поясе Алматы
+    tz = pytz.timezone('Asia/Almaty')
+    current_time = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 
-    except Exception as e:
-        print("❌ Общая ошибка:", str(e))
-        send_telegram(f"❌ Ошибка в main(): {e}")
+    if isinstance(result, str):
+        send_telegram_message(result)
+    elif result and isinstance(result, dict) and result.get("orders"):
+        orders = result["orders"]
+        message = f"📦 Найдено заказов: {len(orders)}. Время: {current_time}"
+        send_telegram_message(message)
+    else:
+        send_telegram_message(f"❌ [{BOT_VERSION}] Нет заказов. Время: {current_time}")
 
 if __name__ == "__main__":
     main()
